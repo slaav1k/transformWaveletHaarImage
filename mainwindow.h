@@ -35,6 +35,8 @@ private slots:
 
     void on_actionSave_triggered();
 
+    void on_action_2_triggered();
+
 private:
     Ui::MainWindow *ui;
     QImage _imageOrigin;
@@ -51,6 +53,16 @@ private:
     ArrImage d21;
     ArrImage d22;
     ArrImage d23;
+
+    ArrImage c33;
+    ArrImage d31;
+    ArrImage d32;
+    ArrImage d33;
+
+    ArrImage c44;
+    ArrImage d41;
+    ArrImage d42;
+    ArrImage d43;
 
     void debugArrImage(ArrImage a);
     void splitMatrix(const ArrImage& matrix, ArrImage& topLeft, ArrImage& topRight, ArrImage& bottomLeft, ArrImage& bottomRight);

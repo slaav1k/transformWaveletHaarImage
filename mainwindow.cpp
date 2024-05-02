@@ -11,6 +11,9 @@
 #include <QPainter>
 #include <QLineEdit>
 #include <QTextEdit>
+#include <cstdlib>
+#include <ctime>
+#include <QCheckBox>
 
 #ifndef M_PI
 #define M_PI 3.1415926535897932384626433832795
@@ -56,6 +59,9 @@ void MainWindow::on_actionOpen_triggered()
         imageDialog->setLayout(layout); // Устанавливаем макет в качестве макета окна
 
         imageDialog->show(); // Показываем окно
+        _imageGray = convertToGray(_imageOrigin);
+
+        _arrImageGray =  convertQImageToArrImage(_imageGray);
     }
 }
 
@@ -362,12 +368,9 @@ void MainWindow::on_actionDo_triggered()
     if (_imageOrigin.isNull()) {
         return;
     }
-    _imageGray = convertToGray(_imageOrigin);
-//    _imageGray = _imageOrigin;
 
-    _arrImageGray =  convertQImageToArrImage(_imageGray);
 //    debugArrImage(_arrImageGray);
-
+//    on_action_2_triggered();
 
     ArrImage afterTransforme = ApplyHaarTransform(_arrImageGray);
 //    debugArrImage(afterTransforme);
@@ -390,6 +393,26 @@ void MainWindow::on_actionDo_triggered()
     splitMatrix(afterTransforme2, c22, d21, d22, d23);
     drawImageAfterTransform("WT ITER 2", c22, d21, d22, d23);
 
+    ArrImage afterTransforme3 = ApplyHaarTransform(c22);
+
+    c33.resize(afterTransforme3.size() / 2, vector<double>(afterTransforme3.size() / 2));
+    d31.resize(afterTransforme3.size() / 2, vector<double>(afterTransforme3.size() / 2));
+    d32.resize(afterTransforme3.size() / 2, vector<double>(afterTransforme3.size() / 2));
+    d33.resize(afterTransforme3.size() / 2, vector<double>(afterTransforme3.size() / 2));
+
+    splitMatrix(afterTransforme3, c33, d31, d32, d33);
+    drawImageAfterTransform("WT ITER 3", c33, d31, d32, d33);
+
+    ArrImage afterTransforme4 = ApplyHaarTransform(c33);
+
+    c44.resize(afterTransforme4.size() / 2, vector<double>(afterTransforme4.size() / 2));
+    d41.resize(afterTransforme4.size() / 2, vector<double>(afterTransforme4.size() / 2));
+    d42.resize(afterTransforme4.size() / 2, vector<double>(afterTransforme4.size() / 2));
+    d43.resize(afterTransforme4.size() / 2, vector<double>(afterTransforme4.size() / 2));
+
+    splitMatrix(afterTransforme4, c44, d41, d42, d43);
+    drawImageAfterTransform("WT ITER 4", c44, d41, d42, d43);
+
 }
 
 void MainWindow::on_actionDo2_triggered()
@@ -398,6 +421,8 @@ void MainWindow::on_actionDo2_triggered()
         return;
     }
     // после обнулений, сбоорка в общую матрицу
+    c33 = ApplyInverseHaarTransform(mergeMatrices(c44, d41, d42, d43));
+    c22 = ApplyInverseHaarTransform(mergeMatrices(c33, d31, d32, d33));
     c11 = ApplyInverseHaarTransform(mergeMatrices(c22, d21, d22, d23));
     ArrImage afterTransforme2 = mergeMatrices(c11, d11, d12, d13);
 
@@ -440,8 +465,8 @@ void MainWindow::on_actionDo3_triggered()
 
     // Создаем метки
     QLabel *enterTextLabel = new QLabel("Введите какие представления обнулить (через пробел).", dialog);
-    QLabel *dataLabel = new QLabel("c11 | d11    c22 | d21\n"
-                                   "d12 | d13   d22 | d23", dialog);
+    QLabel *dataLabel = new QLabel("c11 | d11    c22 | d21    c33 | d31    c44 | d41\n"
+                                   "d12 | d13   d22 | d23    d32 | d33    d42 | d43", dialog);
 
     // Создаем текстовое поле
     QTextEdit *textEdit = new QTextEdit(dialog);
@@ -487,8 +512,34 @@ void MainWindow::on_actionDo3_triggered()
         if (text.contains("d23")) {
             resetToZero(d23);
         }
+        if (text.contains("c33")) {
+            resetToZero(c33);
+        }
+        if (text.contains("d31")) {
+            resetToZero(d31);
+        }
+        if (text.contains("d32")) {
+            resetToZero(d32);
+        }
+        if (text.contains("d33")) {
+            resetToZero(d33);
+        }
+        if (text.contains("c44")) {
+            resetToZero(c44);
+        }
+        if (text.contains("d41")) {
+            resetToZero(d41);
+        }
+        if (text.contains("d42")) {
+            resetToZero(d42);
+        }
+        if (text.contains("d43")) {
+            resetToZero(d43);
+        }
         drawImageAfterTransform("FILTER", c11, d11, d12, d13);
         drawImageAfterTransform("FILTER 2", c22, d21, d22, d23);
+        drawImageAfterTransform("FILTER 3", c33, d31, d32, d33);
+        drawImageAfterTransform("FILTER 4", c44, d41, d42, d43);
         dialog->close();
     });
 
@@ -499,3 +550,103 @@ void MainWindow::on_actionDo3_triggered()
 }
 
 
+
+void MainWindow::on_action_2_triggered()
+{
+    if (_imageOrigin.isNull()) {
+        return;
+    }
+
+    QDialog *dialog = new QDialog(this);
+    dialog->setWindowTitle("Noises");
+
+    // Создаем элементы управления для выбора параметров
+    QLineEdit *minIntensityEdit = new QLineEdit(QString::number(0), dialog);
+    QLineEdit *maxIntensityEdit = new QLineEdit(QString::number(180), dialog);
+    QLineEdit *lineCountEdit = new QLineEdit(QString::number(10), dialog);
+    QCheckBox *verticalLinesCheckBox = new QCheckBox("Vertical Lines", dialog);
+    QCheckBox *horizontalLinesCheckBox = new QCheckBox("Horizontal Lines", dialog);
+
+    // Создаем кнопки "Применить" и "Отмена"
+    QPushButton *applyButton = new QPushButton("Apply", dialog);
+    QPushButton *cancelButton = new QPushButton("Cancel", dialog);
+
+    // Создаем макет для размещения элементов управления
+    QVBoxLayout *layout = new QVBoxLayout(dialog);
+    layout->addWidget(new QLabel("Minimum Intensity:", dialog));
+    layout->addWidget(minIntensityEdit);
+    layout->addWidget(new QLabel("Maximum Intensity:", dialog));
+    layout->addWidget(maxIntensityEdit);
+    layout->addWidget(new QLabel("Line Count:", dialog));
+    layout->addWidget(lineCountEdit);
+    layout->addWidget(verticalLinesCheckBox);
+    layout->addWidget(horizontalLinesCheckBox);
+    layout->addWidget(applyButton);
+    layout->addWidget(cancelButton);
+    dialog->setLayout(layout);
+
+    // Соединяем кнопки с слотами для их обработки
+    connect(applyButton, &QPushButton::clicked, [=]() {
+        double minIntensity = minIntensityEdit->text().toDouble();
+        double maxIntensity = maxIntensityEdit->text().toDouble();
+        int lineCount = lineCountEdit->text().toInt();
+        bool verticalLines = verticalLinesCheckBox->isChecked();
+        bool horizontalLines = horizontalLinesCheckBox->isChecked();
+
+        if (minIntensity > maxIntensity)
+        {
+            double tmp = minIntensity;
+            minIntensity = maxIntensity;
+            maxIntensity = tmp;
+        }
+
+        if (maxIntensity > 255)
+            maxIntensity = 255;
+        if (minIntensity < 0)
+            minIntensity = 0;
+
+        if (horizontalLines == true or verticalLines == true)
+        {
+            srand(time(nullptr)); // Инициализация генератора случайных чисел
+            _arrImageGray =  convertQImageToArrImage(_imageGray);
+
+            int size = _arrImageGray.size();
+
+            int step = size / lineCount; // Вычисляем шаг между линиями
+
+            for (int x = 0; x < size; x += step) {
+                double intensity = minIntensity + (maxIntensity - minIntensity) * (rand() / (double)RAND_MAX);
+                // Задаем яркость для каждого пикселя в вертикальной линии
+                for (int y = 0; y < size; ++y) {
+                    if (verticalLines == true)
+                        _arrImageGray[y][x] = intensity;
+                    else
+                        _arrImageGray[x][y] = intensity;
+                }
+            }
+
+
+            QImage imageWithLines = convertArrImageToQImage(_arrImageGray);
+
+            QDialog *imageDialog = new QDialog(this);
+            imageDialog->setWindowTitle("IMAGE WITH LINES");
+            QLabel *newLabel = new QLabel(imageDialog); // Создаем QLabel для отображения изображения
+            newLabel->setPixmap(QPixmap::fromImage(imageWithLines)); // Устанавливаем изображение в QLabel
+
+            // Устанавливаем макет для диалогового окна и добавляем QLabel
+            QVBoxLayout *layout = new QVBoxLayout(imageDialog);
+            layout->addWidget(newLabel);
+            imageDialog->setLayout(layout);
+
+            // Показываем диалоговое окно
+            imageDialog->show();
+        }
+
+        dialog->close(); // Закрываем диалоговое окно после применения параметров
+    });
+
+    connect(cancelButton, &QPushButton::clicked, dialog, &QDialog::close);
+
+    dialog->exec(); // Отображаем диалоговое окно
+
+}
