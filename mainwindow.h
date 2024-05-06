@@ -14,7 +14,7 @@ namespace Ui {
 class MainWindow;
 }
 
-typedef std::vector<std::vector<double> > ArrImage;
+typedef vector<vector<double> > ArrImage;
 
 class MainWindow : public QMainWindow
 {
@@ -42,6 +42,11 @@ private:
     QImage _imageOrigin;
     QImage _imageGray;
     QImage _resultImage;
+
+    QString ansChoseQuadrant;
+    QString i1_2;
+    QString i2_3;
+    QString i3_4;
 
     ArrImage _arrImageGray;
     ArrImage c11;
@@ -79,6 +84,7 @@ private:
     QImage convertToGray(const QImage& image);
     ArrImage convertQImageToArrImage(const QImage& image);
     QImage convertArrImageToQImage(const ArrImage& arrImage);
+    void choseQuadrantForTransform();
 
 
 

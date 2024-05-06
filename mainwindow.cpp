@@ -329,6 +329,7 @@ void MainWindow::drawImageAfterTransform(QString title, const ArrImage& topLeft,
     QDialog *dialog = new QDialog(this);
     QLabel *label = new QLabel(dialog);
     dialog->setWindowTitle(title);
+    dialog->setMinimumWidth(_arrImageGray.size());
     QVBoxLayout *layout = new QVBoxLayout(dialog);
     label->resize(topLeft.size() * 2, topLeft.size() * 2);
 
@@ -363,6 +364,56 @@ void MainWindow::drawImageAfterTransform(QString title, const ArrImage& topLeft,
 }
 
 
+void MainWindow::choseQuadrantForTransform() {
+    if (c11.size() == 0) {
+        return;
+    }
+    // Создаем новое диалоговое окно
+    QDialog *dialog = new QDialog(this);
+    dialog->setWindowTitle("Filter");
+
+    // Создаем метки
+    QLabel *enterTextLabel = new QLabel("Введите следущий квадрант для разложения.", dialog);
+    QLabel *dataLabel = new QLabel("c  | d1\n"
+                                   "d2 | d3", dialog);
+
+    // Создаем текстовое поле
+    QTextEdit *textEdit = new QTextEdit(dialog);
+    textEdit->setFixedHeight(50);
+
+    // Создаем кнопки "ОК" и "Отмена"
+    QPushButton *okButton = new QPushButton("OK", dialog);
+    QPushButton *cancelButton = new QPushButton("Отмена", dialog);
+
+    // Устанавливаем макет для диалогового окна
+    QVBoxLayout *layout = new QVBoxLayout(dialog);
+    layout->addWidget(enterTextLabel);
+    layout->addWidget(dataLabel);
+    layout->addWidget(textEdit);
+    layout->addWidget(okButton);
+    layout->addWidget(cancelButton);
+    dialog->setLayout(layout);
+
+    // Подключаем сигналы и слоты для кнопок
+    connect(okButton, &QPushButton::clicked, [=]() {
+        dialog->close();
+        ansChoseQuadrant =  textEdit->toPlainText();
+    });
+
+    connect(cancelButton, &QPushButton::clicked, [=]()
+    {
+        textEdit->setText("c");
+        dialog->close();
+        ansChoseQuadrant = textEdit->toPlainText();
+    });
+
+
+    // Показываем диалоговое окно
+    dialog->exec();
+
+}
+
+
 void MainWindow::on_actionDo_triggered()
 {
     if (_imageOrigin.isNull()) {
@@ -372,6 +423,7 @@ void MainWindow::on_actionDo_triggered()
 //    debugArrImage(_arrImageGray);
 //    on_action_2_triggered();
 
+    i1_2, i2_3, i3_4 = "", "", "";
     ArrImage afterTransforme = ApplyHaarTransform(_arrImageGray);
 //    debugArrImage(afterTransforme);
 
@@ -383,7 +435,18 @@ void MainWindow::on_actionDo_triggered()
     splitMatrix(afterTransforme, c11, d11, d12, d13);
     drawImageAfterTransform("WT ITER 1", c11, d11, d12, d13);
 
-    ArrImage afterTransforme2 = ApplyHaarTransform(c11);
+    choseQuadrantForTransform();
+    i1_2 = ansChoseQuadrant;
+
+    ArrImage afterTransforme2;
+    if (i1_2.contains("d1"))
+        afterTransforme2 = ApplyHaarTransform(d11);
+    else if (i1_2.contains("d2"))
+        afterTransforme2 = ApplyHaarTransform(d12);
+    else if (i1_2.contains("d3"))
+        afterTransforme2 = ApplyHaarTransform(d13);
+    else
+        afterTransforme2 = ApplyHaarTransform(c11);
 
     c22.resize(afterTransforme2.size() / 2, vector<double>(afterTransforme2.size() / 2));
     d21.resize(afterTransforme2.size() / 2, vector<double>(afterTransforme2.size() / 2));
@@ -391,9 +454,22 @@ void MainWindow::on_actionDo_triggered()
     d23.resize(afterTransforme2.size() / 2, vector<double>(afterTransforme2.size() / 2));
 
     splitMatrix(afterTransforme2, c22, d21, d22, d23);
-    drawImageAfterTransform("WT ITER 2", c22, d21, d22, d23);
+    drawImageAfterTransform("WT ITER 2 by "  + i1_2, c22, d21, d22, d23);
 
-    ArrImage afterTransforme3 = ApplyHaarTransform(c22);
+
+    choseQuadrantForTransform();
+    i2_3 = ansChoseQuadrant;
+
+    ArrImage afterTransforme3;
+    if (i2_3.contains("d1"))
+        afterTransforme3 = ApplyHaarTransform(d21);
+    else if (i2_3.contains("d2"))
+        afterTransforme3 = ApplyHaarTransform(d22);
+    else if (i2_3.contains("d3"))
+        afterTransforme3 = ApplyHaarTransform(d23);
+    else
+        afterTransforme3 = ApplyHaarTransform(c22);
+
 
     c33.resize(afterTransforme3.size() / 2, vector<double>(afterTransforme3.size() / 2));
     d31.resize(afterTransforme3.size() / 2, vector<double>(afterTransforme3.size() / 2));
@@ -401,9 +477,22 @@ void MainWindow::on_actionDo_triggered()
     d33.resize(afterTransforme3.size() / 2, vector<double>(afterTransforme3.size() / 2));
 
     splitMatrix(afterTransforme3, c33, d31, d32, d33);
-    drawImageAfterTransform("WT ITER 3", c33, d31, d32, d33);
+    drawImageAfterTransform("WT ITER 3 by " + i2_3, c33, d31, d32, d33);
 
-    ArrImage afterTransforme4 = ApplyHaarTransform(c33);
+
+    choseQuadrantForTransform();
+        i3_4 = ansChoseQuadrant;
+
+        ArrImage afterTransforme4;
+        if (i3_4.contains("d1"))
+            afterTransforme4 = ApplyHaarTransform(d31);
+        else if (i3_4.contains("d2"))
+            afterTransforme4 = ApplyHaarTransform(d32);
+        else if (i3_4.contains("d3"))
+            afterTransforme4 = ApplyHaarTransform(d33);
+        else
+            afterTransforme4 = ApplyHaarTransform(c33);
+
 
     c44.resize(afterTransforme4.size() / 2, vector<double>(afterTransforme4.size() / 2));
     d41.resize(afterTransforme4.size() / 2, vector<double>(afterTransforme4.size() / 2));
@@ -411,7 +500,7 @@ void MainWindow::on_actionDo_triggered()
     d43.resize(afterTransforme4.size() / 2, vector<double>(afterTransforme4.size() / 2));
 
     splitMatrix(afterTransforme4, c44, d41, d42, d43);
-    drawImageAfterTransform("WT ITER 4", c44, d41, d42, d43);
+    drawImageAfterTransform("WT ITER 4 by " + i3_4, c44, d41, d42, d43);
 
 }
 
@@ -421,9 +510,33 @@ void MainWindow::on_actionDo2_triggered()
         return;
     }
     // после обнулений, сбоорка в общую матрицу
-    c33 = ApplyInverseHaarTransform(mergeMatrices(c44, d41, d42, d43));
-    c22 = ApplyInverseHaarTransform(mergeMatrices(c33, d31, d32, d33));
-    c11 = ApplyInverseHaarTransform(mergeMatrices(c22, d21, d22, d23));
+    if (i3_4.contains("d1"))
+        d31 = ApplyInverseHaarTransform(mergeMatrices(c44, d41, d42, d43));
+    else if (i3_4.contains("d2"))
+        d32 = ApplyInverseHaarTransform(mergeMatrices(c44, d41, d42, d43));
+    else if (i3_4.contains("d3"))
+        d33 = ApplyInverseHaarTransform(mergeMatrices(c44, d41, d42, d43));
+    else
+        c33 = ApplyInverseHaarTransform(mergeMatrices(c44, d41, d42, d43));
+
+    if (i2_3.contains("d1"))
+        d21 = ApplyInverseHaarTransform(mergeMatrices(c33, d31, d32, d33));
+    else if (i2_3.contains("d2"))
+        d22 = ApplyInverseHaarTransform(mergeMatrices(c33, d31, d32, d33));
+    else if (i2_3.contains("d3"))
+        d23 = ApplyInverseHaarTransform(mergeMatrices(c33, d31, d32, d33));
+    else
+        c22 = ApplyInverseHaarTransform(mergeMatrices(c33, d31, d32, d33));
+
+    if (i1_2.contains("d1"))
+        d11 = ApplyInverseHaarTransform(mergeMatrices(c22, d21, d22, d23));
+    else if (i1_2.contains("d2"))
+        d12 = ApplyInverseHaarTransform(mergeMatrices(c22, d21, d22, d23));
+    else if (i1_2.contains("d3"))
+        d13 = ApplyInverseHaarTransform(mergeMatrices(c22, d21, d22, d23));
+    else
+        c11 = ApplyInverseHaarTransform(mergeMatrices(c22, d21, d22, d23));
+
     ArrImage afterTransforme2 = mergeMatrices(c11, d11, d12, d13);
 
 
