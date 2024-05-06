@@ -370,7 +370,7 @@ void MainWindow::choseQuadrantForTransform() {
     }
     // Создаем новое диалоговое окно
     QDialog *dialog = new QDialog(this);
-    dialog->setWindowTitle("Filter");
+    dialog->setWindowTitle("Chose quadrant");
 
     // Создаем метки
     QLabel *enterTextLabel = new QLabel("Введите следущий квадрант для разложения.", dialog);
@@ -423,7 +423,7 @@ void MainWindow::on_actionDo_triggered()
 //    debugArrImage(_arrImageGray);
 //    on_action_2_triggered();
 
-    i1_2, i2_3, i3_4 = "", "", "";
+    i1_2 = ""; i2_3 = ""; i3_4 = "";
     ArrImage afterTransforme = ApplyHaarTransform(_arrImageGray);
 //    debugArrImage(afterTransforme);
 
